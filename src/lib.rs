@@ -44,6 +44,70 @@ fn py_to_micros(time: &impl pyo3::types::PyTimeAccess) -> u32 {
     }
 }
 
+// Workaround until https://github.com/PyO3/pyo3/pull/1398 is merged
+trait PyDateTimeWithFoldExtensionTrait {
+    #[allow(clippy::too_many_arguments)]
+    fn new_with_fold<'p>(
+        py: pyo3::Python<'p>,
+        year: i32,
+        month: u8,
+        day: u8,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        microsecond: u32,
+        tzinfo: Option<&pyo3::PyObject>,
+        fold: bool,
+    ) -> pyo3::PyResult<&'p pyo3::types::PyDateTime>;
+}
+
+impl PyDateTimeWithFoldExtensionTrait for pyo3::types::PyDateTime {
+    fn new_with_fold<'p>(
+        py: pyo3::Python<'p>,
+        year: i32,
+        month: u8,
+        day: u8,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        microsecond: u32,
+        tzinfo: Option<&pyo3::PyObject>,
+        fold: bool,
+    ) -> pyo3::PyResult<&'p pyo3::types::PyDateTime> {
+        use pyo3::ffi::PyDateTimeAPI;
+        use std::os::raw::c_int;
+
+        unsafe fn opt_to_pyobj(
+            py: pyo3::Python,
+            opt: Option<&pyo3::PyObject>,
+        ) -> *mut pyo3::ffi::PyObject {
+            use pyo3::AsPyPointer as _;
+
+            // Convenience function for unpacking Options to either an Object or None
+            match opt {
+                Some(tzi) => tzi.as_ptr(),
+                None => py.None().as_ptr(),
+            }
+        }
+
+        unsafe {
+            let ptr = (PyDateTimeAPI.DateTime_FromDateAndTimeAndFold)(
+                year,
+                c_int::from(month),
+                c_int::from(day),
+                c_int::from(hour),
+                c_int::from(minute),
+                c_int::from(second),
+                microsecond as c_int,
+                opt_to_pyobj(py, tzinfo),
+                c_int::from(fold),
+                PyDateTimeAPI.DateTimeType,
+            );
+            py.from_owned_ptr_or_err(ptr)
+        }
+    }
+}
+
 macro_rules! new_type {
     ($doc:literal, $name:ident, $inner_type:ty) => {
         #[doc = $doc]
