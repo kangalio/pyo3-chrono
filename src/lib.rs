@@ -10,7 +10,7 @@
 //! Python can store durations from negative one billion days up to positive one billion days long,
 //! in microsecond precision. However,
 //! Chrono only accepts microseconds as i64:
-//! ```
+//! ```text
 //! Python's max duration: 84599999999999999999 microseconds
 //! Chrono's max duration: 9223372036854775807 microseconds
 //!
