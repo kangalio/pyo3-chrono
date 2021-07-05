@@ -10,5 +10,5 @@ categories = ["api-bindings", "date-and-time"]
 repository = "https://github.com/kangalioo/pyo3-chrono/"
 
 [dependencies]
-pyo3 = "0.13"
+pyo3 = "0.14"
 chrono = "0.4"
