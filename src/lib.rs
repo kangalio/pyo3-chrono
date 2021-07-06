@@ -23,6 +23,8 @@
 
 pub use chrono;
 pub use pyo3;
+#[cfg(feature = "serde")]
+pub use serde_ as serde;
 
 use chrono::{Datelike as _, Timelike as _};
 use pyo3::types::{PyDateAccess as _, PyDeltaAccess as _, PyTimeAccess as _};
@@ -70,11 +72,30 @@ macro_rules! new_type {
     };
 }
 
+macro_rules! impl_serde_traits {
+    ($new_type:ty, $inner_type:ty) => {
+        #[cfg(feature = "serde")]
+        impl serde::Serialize for $new_type {
+            fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                self.0.serialize(serializer)
+            }
+        }
+
+        #[cfg(feature = "serde")]
+        impl<'de> serde::Deserialize<'de> for $new_type {
+            fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+                <$inner_type>::deserialize(deserializer).map(Self)
+            }
+        }
+    };
+}
+
 new_type!(
     "A wrapper around [`chrono::NaiveDateTime`] that can be converted to and from Python's `datetime.datetime`",
     NaiveDateTime,
     chrono::NaiveDateTime
 );
+impl_serde_traits!(NaiveDateTime, chrono::NaiveDateTime);
 
 impl pyo3::ToPyObject for NaiveDateTime {
     fn to_object(&self, py: pyo3::Python) -> pyo3::PyObject {
@@ -126,6 +147,7 @@ new_type!(
     NaiveDate,
     chrono::NaiveDate
 );
+impl_serde_traits!(NaiveDate, chrono::NaiveDate);
 
 impl pyo3::ToPyObject for NaiveDate {
     fn to_object(&self, py: pyo3::Python) -> pyo3::PyObject {
@@ -157,6 +179,7 @@ new_type!(
     NaiveTime,
     chrono::NaiveTime
 );
+impl_serde_traits!(NaiveTime, chrono::NaiveTime);
 
 impl pyo3::ToPyObject for NaiveTime {
     fn to_object(&self, py: pyo3::Python) -> pyo3::PyObject {
@@ -198,6 +221,7 @@ new_type!(
     Duration,
     chrono::Duration
 );
+// impl_serde_traits!(Duration, chrono::Duration); // chrono doesn't yet support serde traits for it
 
 impl pyo3::ToPyObject for Duration {
     fn to_object(&self, py: pyo3::Python) -> pyo3::PyObject {
