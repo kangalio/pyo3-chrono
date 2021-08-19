@@ -238,7 +238,7 @@ impl pyo3::ToPyObject for Duration {
         // it's safe to unwrap as it is less then chrono::Duration::minutes(1)
         let total_micros = subminute_duration.num_microseconds().unwrap();
 
-        // Can safely cast to i32 as the total number of days in chrono::Duration::microseconds(i64::MAX) < i32::MAX
+        // Can safely cast to i32 as the total number of days in chrono::Duration::microseconds(std::i64::MAX) < std::i32::MAX
         pyo3::types::PyDelta::new(
             py,
             total_days as i32,
@@ -371,8 +371,8 @@ mod tests {
             (0, 0, 999_999, 999_999, true),
             (0, 0, 1_000_000, 1_000_000, true),
             (0, 36 * 60, 0, 36 * 60 * 1_000_000, true),
-            (0, 0, i32::MAX, i32::MAX as i64, true),
-            (0, 0, i32::MIN, i32::MIN as i64, true),
+            (0, 0, std::i32::MAX, std::i32::MAX as i64, true),
+            (0, 0, std::i32::MIN, std::i32::MIN as i64, true),
             (
                 // Python's max duration is 1 billion days...
                 999999999,
@@ -380,7 +380,7 @@ mod tests {
                 999999,
                 // ...which is not representable in Chrono, hence our library aims to clamp to the
                 // nearest value:
-                i64::MAX,
+                std::i64::MAX,
                 // Don't check if Chrono conversion to Python fails - it will definitely fail
                 // because Chrono's truncated duration doesn't match Python's full duration
                 false,
@@ -392,7 +392,7 @@ mod tests {
                 0,
                 // ...which is not representable in Chrono, hence our library aims to clamp to the
                 // nearest value when converting from Python to Rust:
-                i64::MIN,
+                std::i64::MIN,
                 // Don't check if Chrono conversion to Python fails - it will definitely fail
                 // because Chrono's truncated duration doesn't match Python's full duration
                 false,
