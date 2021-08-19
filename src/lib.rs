@@ -31,7 +31,6 @@ pub use serde_ as serde;
 
 use chrono::{Datelike as _, Timelike as _};
 use pyo3::types::{PyDateAccess as _, PyDeltaAccess as _, PyTimeAccess as _};
-use std::convert::TryInto as _;
 
 fn chrono_to_micros_and_fold(time: impl chrono::Timelike) -> (u32, bool) {
     if let Some(folded_nanos) = time.nanosecond().checked_sub(1_000_000_000) {
@@ -228,24 +227,27 @@ new_type!(
 
 impl pyo3::ToPyObject for Duration {
     fn to_object(&self, py: pyo3::Python) -> pyo3::PyObject {
-        const MICROSECONDS_PER_DAY: i64 = 60 * 60 * 24 * 1_000_000;
-
         // There's a lot of clamping involved here because chrono doesn't expose enough
         // functionality for clean 1:1 conversions
-        let total_micros = self.0.num_microseconds().unwrap_or(i64::MAX);
-        let total_days = (total_micros / MICROSECONDS_PER_DAY)
-            .try_into()
-            .unwrap_or(i32::MAX);
-        // We can safely cast to i32 because we moduloed and therefore must be in i32 bounds
-        let subday_micros = (total_micros % MICROSECONDS_PER_DAY) as i32;
+        let total_days = self.0.num_days();
 
-        // We can pass zero for seconds here because we contain the seconds in subday_micros,
-        // and because we pass true, Python normalizes the given values anyways: "Normalization is
-        // performed so that the resulting number of microseconds and seconds lie in the ranges
-        // documented for datetime.timedelta objects."
-        pyo3::types::PyDelta::new(py, total_days, 0, subday_micros, true)
-            .unwrap()
-            .into()
+        let subday_duration = self.0 - chrono::Duration::days(total_days);
+        let total_minutes = subday_duration.num_minutes();
+
+        let subminute_duration = subday_duration - chrono::Duration::minutes(total_minutes);
+        // it's safe to unwrap as it is less then chrono::Duration::minutes(1)
+        let total_micros = subminute_duration.num_microseconds().unwrap();
+
+        // Can safely cast to i32 as the total number of days in chrono::Duration::microseconds(i64::MAX) < i32::MAX
+        pyo3::types::PyDelta::new(
+            py,
+            total_days as i32,
+            total_minutes as i32 * 60,
+            total_micros as i32,
+            true,
+        )
+        .unwrap()
+        .into()
     }
 }
 
@@ -368,6 +370,7 @@ mod tests {
             (-10000, 0, 0, -864000000000000, true),
             (0, 0, 999_999, 999_999, true),
             (0, 0, 1_000_000, 1_000_000, true),
+            (0, 36 * 60, 0, 36 * 60 * 1_000_000, true),
             (0, 0, i32::MAX, i32::MAX as i64, true),
             (0, 0, i32::MIN, i32::MIN as i64, true),
             (
