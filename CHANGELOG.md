@@ -1,3 +1,7 @@
+## 0.3.0
+
+- Update from PyO3 0.14 to 0.15
+
 ## 0.2.2
 
 - Fix conversions of durations above 35 minutes
