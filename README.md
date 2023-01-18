@@ -1,4 +1,10 @@
+# THIS CRATE IS DEPRECATED
+
+PyO3 0.17.2 added native support for chrono in https://github.com/PyO3/pyo3/pull/2612 behind the
+`chrono` feature flag. You shouldn't use this crate anymore.
+
 # pyo3-chrono
+
 This crate provides newtype wrappers around chrono's `NaiveDateTime`, `NaiveDate`,
 `NaiveTime`, and `Duration` structs, that can be used in `PyO3` applications.
 

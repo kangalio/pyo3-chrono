@@ -1,3 +1,15 @@
+## 0.5.1
+
+- Deprecate this crate
+
+## 0.5.0
+
+- Update from PyO3 0.16 to 0.17
+
+## 0.4.0
+
+- Update from PyO3 0.15 to 0.16
+
 ## 0.3.0
 
 - Update from PyO3 0.14 to 0.15
